@@ -15,13 +15,13 @@ app.use(express.static(__dirname));
 
 /**
  * HACKATHON ENDPOINT: POST /api/voice-detection
- * Optimized for Ultra-High Precision Analysis using Gemini 3 Pro + Thinking Budget.
+ * Optimized for Latency & Accuracy using Gemini 3 Flash + Balanced Thinking Budget.
+ * Response time target: < 10 seconds.
  */
 app.post('/api/voice-detection', async (req, res) => {
   const apiKeyHeader = req.headers['x-api-key'];
   const { audioBase64, audioFormat, language } = req.body;
 
-  // Validation against hackathon key (fallback to default if env not set)
   const VALID_KEY = process.env.HACKATHON_API_KEY || 'sk_voxguard_2025';
   
   if (!apiKeyHeader || apiKeyHeader !== VALID_KEY) {
@@ -48,49 +48,53 @@ app.post('/api/voice-detection', async (req, res) => {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
-    // Gemini 3 Pro for superior forensic reasoning
-    const model = 'gemini-3-pro-preview';
+    /** 
+     * Switching to gemini-3-flash-preview for significantly faster processing.
+     * Flash is optimized for lower latency while still supporting 'thinking'
+     * for high-accuracy forensic classification.
+     */
+    const model = 'gemini-3-flash-preview';
 
-    const systemInstruction = `You are a World-Class Audio Forensic Analyst specializing in Deepfake detection.
-    Analyze the provided audio sample in ${language}.
+    const systemInstruction = `You are a World-Class Audio Forensic Analyst. 
+    Analyze the provided audio sample in ${language} to detect if it is HUMAN_GENERATED or AI_GENERATED.
     
-    FORENSIC STEPS:
-    1. Spectral Analysis: Look for 'metallic' smoothing, unnatural frequency cuts, or phase inconsistencies.
-    2. Prosodic Verification: Humans have micro-hesitations, irregular breathing, and varied emotional pitch. AI voices are often 'too perfect' or have consistent rhythmic micro-jitter.
-    3. Linguistic Authenticity: Check if phoneme transitions (especially in ${language}) sound synthesized.
+    FORENSIC CRITERIA:
+    - Spectral Smoothing: AI often smooths high frequencies or lacks natural "air" noise.
+    - Rhythmic Jitter: Check for robotic micro-fluctuations in speech tempo.
+    - Emotional Nuance: Look for natural variations in volume and pitch that AI lacks in ${language}.
+    - Artifacts: Identify 'metallic' or 'electronic' background artifacts.
     
-    You must decide if it is HUMAN_GENERATED or AI_GENERATED.
-    Be extremely critical. Your reputation depends on avoiding false negatives.`;
+    Be critical. Return high confidence only if artifacts are clear.`;
 
     const response = await ai.models.generateContent({
       model: model,
       contents: {
         parts: [
           { inlineData: { mimeType: 'audio/mp3', data: audioBase64 } },
-          { text: `Analyze this audio sample in ${language}. Provide a detailed forensic verdict.` },
+          { text: `Analyze the authenticity of this ${language} audio.` },
         ],
       },
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
-        // Thinking budget enables the model to reason through complex acoustic features before answering.
-        thinkingConfig: { thinkingBudget: 24000 },
-        maxOutputTokens: 30000,
+        /**
+         * Reduced Thinking Budget (8000 tokens):
+         * High enough for robust reasoning, low enough to reduce response time from ~25s to ~8s.
+         */
+        thinkingConfig: { thinkingBudget: 8000 },
+        maxOutputTokens: 1000, // Minimal tokens needed for JSON output
         responseSchema: {
           type: Type.OBJECT,
           properties: {
             classification: { 
               type: Type.STRING, 
-              enum: ["AI_GENERATED", "HUMAN_GENERATED"],
-              description: "The classification of the voice sample."
+              enum: ["AI_GENERATED", "HUMAN_GENERATED"]
             },
             confidenceScore: { 
-              type: Type.NUMBER,
-              description: "Confidence level between 0 and 1."
+              type: Type.NUMBER
             },
             explanation: { 
-              type: Type.STRING,
-              description: "Detailed technical explanation of the artifacts detected."
+              type: Type.STRING
             }
           },
           required: ["classification", "confidenceScore", "explanation"]
@@ -98,22 +102,21 @@ app.post('/api/voice-detection', async (req, res) => {
       },
     });
 
-    const forensicResult = JSON.parse(response.text);
+    const result = JSON.parse(response.text);
     
-    // Return standard hackathon response format
     res.json({
       status: "success",
       language: language,
-      classification: forensicResult.classification,
-      confidenceScore: forensicResult.confidenceScore,
-      explanation: forensicResult.explanation
+      classification: result.classification,
+      confidenceScore: result.confidenceScore,
+      explanation: result.explanation
     });
 
   } catch (error) {
     console.error('Forensic Engine Error:', error);
     res.status(500).json({
       status: "error",
-      message: "Forensic analysis engine encountered an error. Ensure the audio is a valid Base64 MP3."
+      message: "Analysis timed out or failed. Please try a shorter sample."
     });
   }
 });
@@ -123,5 +126,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`VoxGuard High-Accuracy API active on port ${port}`);
+  console.log(`VoxGuard Low-Latency API active on port ${port}`);
 });
