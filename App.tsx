@@ -7,6 +7,7 @@ import AnalysisResultView from './components/AnalysisResultView';
 
 const App: React.FC = () => {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>(Language.ENGLISH);
+  const [hackathonApiKey, setHackathonApiKey] = useState('sk_voxguard_2025'); // Default for demo
   const [file, setFile] = useState<AudioFile | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
@@ -111,13 +112,21 @@ const App: React.FC = () => {
 
   const handleAnalyze = async () => {
     if (!file) return;
+    if (!hackathonApiKey) {
+      setError('A valid x-api-key is required for authentication.');
+      return;
+    }
+    
     setIsAnalyzing(true);
     setError(null);
     try {
-      const analysis = await analyzeVoiceSample(file.base64, file.mimeType, selectedLanguage);
+      const analysis = await analyzeVoiceSample(file.base64, 'mp3', selectedLanguage, hackathonApiKey);
+      if (analysis.status === 'error') {
+        throw new Error(analysis.explanation);
+      }
       setResult(analysis);
     } catch (err: any) {
-      setError(err.message || 'Analysis failed. Please check your connection.');
+      setError(err.message || 'Analysis failed. Check your API Key.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -143,12 +152,33 @@ const App: React.FC = () => {
               Voice Authenticity <span className="text-indigo-600">Check</span>
             </h2>
             <p className="text-slate-500 text-base max-w-md mx-auto leading-relaxed">
-              Hackathon edition: compliant with required JSON endpoint structure.
+              Strictly compliant with hackathon API specifications, including header-based authentication.
             </p>
           </div>
 
           {/* Controls Container */}
           <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-8">
+            
+            {/* API Key Auth Field */}
+            <div>
+              <div className="flex justify-between items-center mb-4">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Authentication</label>
+                {hackathonApiKey && <span className="text-[9px] font-bold bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded-full">x-api-key: ACTIVE</span>}
+              </div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <i className="fas fa-key text-slate-300 text-xs"></i>
+                </div>
+                <input
+                  type="password"
+                  value={hackathonApiKey}
+                  onChange={(e) => setHackathonApiKey(e.target.value)}
+                  placeholder="Enter Hackathon API Key..."
+                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none"
+                />
+              </div>
+            </div>
+
             {/* Language Picker */}
             <div>
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 block">Select Language</label>
@@ -217,7 +247,7 @@ const App: React.FC = () => {
                     </div>
                     <div className="truncate">
                       <p className="text-sm font-bold text-slate-900 truncate">{file?.name}</p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase">Ready for analysis</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase text-indigo-400">Ready for MP3 Analysis</p>
                     </div>
                   </div>
                   <button onClick={reset} className="p-2 text-slate-400 hover:text-rose-500 transition-colors">
@@ -267,29 +297,30 @@ const App: React.FC = () => {
             {showApiDocs && (
               <div className="p-4 bg-slate-50 border-t border-slate-200 font-mono text-[11px] space-y-4">
                 <div>
-                  <p className="text-slate-400 mb-1 font-bold uppercase tracking-tighter">Endpoint URL:</p>
-                  <p className="text-indigo-600 bg-white p-2 rounded border border-slate-200 break-all select-all">
-                    https://your-domain.com/api/voice-detection
+                  <p className="text-slate-400 mb-1 font-bold uppercase tracking-tighter">Auth Header Required:</p>
+                  <p className="text-emerald-600 bg-white p-2 rounded border border-slate-200 font-bold">
+                    x-api-key: {hackathonApiKey || 'YOUR_SECRET_KEY'}
                   </p>
                 </div>
                 <div>
-                  <p className="text-slate-400 mb-1 font-bold uppercase tracking-tighter">Required Response Body (Success):</p>
+                  <p className="text-slate-400 mb-1 font-bold uppercase tracking-tighter">Required Request Body:</p>
+                  <pre className="bg-slate-900 text-slate-300 p-3 rounded overflow-x-auto">
+{`{
+  "language": "${selectedLanguage}",
+  "audioFormat": "mp3",
+  "audioBase64": "SUQzBAAAAAAA..."
+}`}
+                  </pre>
+                </div>
+                <div>
+                  <p className="text-slate-400 mb-1 font-bold uppercase tracking-tighter">Success Response:</p>
                   <pre className="bg-slate-900 text-slate-300 p-3 rounded overflow-x-auto">
 {`{
   "status": "success",
   "language": "${selectedLanguage}",
   "classification": "${result?.classification || 'AI_GENERATED'}",
-  "confidenceScore": ${result?.confidenceScore || 0.91},
+  "confidenceScore": ${result?.confidenceScore || 0.95},
   "explanation": "..."
-}`}
-                  </pre>
-                </div>
-                <div>
-                  <p className="text-slate-400 mb-1 font-bold uppercase tracking-tighter">Required Response Body (Error):</p>
-                  <pre className="bg-slate-900 text-rose-400 p-3 rounded overflow-x-auto">
-{`{
-  "status": "error",
-  "message": "Invalid API key or malformed request"
 }`}
                   </pre>
                 </div>

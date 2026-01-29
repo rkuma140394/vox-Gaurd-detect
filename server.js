@@ -10,87 +10,91 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = process.env.PORT || 8080;
 
-// Middleware for handling large base64 audio uploads (Deepfakes can be high bitrate)
 app.use(express.json({ limit: '50mb' }));
-
-// Serve the bundled frontend files
 app.use(express.static(__dirname));
 
 /**
  * HACKATHON ENDPOINT: POST /api/voice-detection
- * This is the core endpoint for the forensic analysis.
+ * Optimized for High Precision Analysis using Gemini 3 Pro + Thinking Budget.
  */
 app.post('/api/voice-detection', async (req, res) => {
-  const { audioBase64, mimeType, language } = req.body;
+  const apiKeyHeader = req.headers['x-api-key'];
+  const { audioBase64, audioFormat, language } = req.body;
 
-  if (!process.env.API_KEY) {
-    console.error("API_KEY is missing in environment variables.");
-    return res.status(500).json({
+  const VALID_KEY = process.env.HACKATHON_API_KEY || 'sk_voxguard_2025';
+  
+  if (!apiKeyHeader || apiKeyHeader !== VALID_KEY) {
+    return res.status(401).json({
       status: "error",
-      message: "Internal Server Error: API Key not configured."
+      message: "Unauthorized: Invalid or missing x-api-key header."
     });
   }
 
-  if (!audioBase64 || !language) {
-    return res.status(400).json({
+  if (!process.env.API_KEY) {
+    return res.status(500).json({
       status: "error",
-      message: "Bad Request: audioBase64 and language are required fields."
+      message: "Internal Server Error: AI model credentials not configured."
     });
   }
 
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    // Using gemini-3-flash-preview for high-speed multi-modal analysis
-    const model = 'gemini-3-flash-preview';
+    
+    // Using gemini-3-pro-preview for highest reasoning accuracy
+    const model = 'gemini-3-pro-preview';
 
-    const prompt = `You are a world-class forensic audio engineer specializing in AI voice detection. 
-    Analyze the provided audio sample in ${language}. 
-    Determine if the voice is AI_GENERATED (Deepfake/TTS) or HUMAN_GENERATED.
+    const systemInstruction = `You are an elite Audio Forensic Expert specializing in Neural Speech Analysis and Deepfake Detection. 
+    Your task is to analyze audio samples in ${language} and identify if they are HUMAN_GENERATED or AI_GENERATED.
     
-    Look for:
-    1. Spectral anomalies (unnatural frequency cutoffs)
-    2. Phase inconsistencies or robotic artifacts
-    3. Unnatural breathing patterns or lack thereof
-    4. Prosody and emotional cadence typical of specific AI models
+    CRITERIA FOR ANALYSIS:
+    1. PROSODY: Check for unnatural rhythmic precision or lack of emotional micro-variance common in ${language}.
+    2. SPECTRAL TRACES: Identify metallic resonance or quantization artifacts in the high-frequency range.
+    3. BREATHING: Human speech has involuntary respiratory patterns. AI often mimics this poorly or omits it.
+    4. LINGUISTIC COHERENCE: Evaluate if the phonetic transitions are too "perfect" for natural human speech in ${language}.
     
-    Return the response strictly in this JSON format:
-    {
-      "status": "success",
-      "language": "${language}",
-      "classification": "AI_GENERATED" or "HUMAN_GENERATED",
-      "confidenceScore": float between 0.0 and 1.0,
-      "explanation": "Detailed technical reasoning in one or two sentences."
-    }`;
+    Be extremely critical. If the confidence is high, explain precisely what artifacts led to the conclusion.`;
 
     const response = await ai.models.generateContent({
       model: model,
       contents: {
         parts: [
-          { inlineData: { mimeType: mimeType || 'audio/mp3', data: audioBase64 } },
-          { text: prompt },
+          { inlineData: { mimeType: 'audio/mp3', data: audioBase64 } },
+          { text: `Perform a deep forensic analysis of this ${language} audio sample. Format the response as a JSON object.` },
         ],
       },
       config: {
+        systemInstruction: systemInstruction,
         responseMimeType: "application/json",
+        // Thinking budget allows the model to "reason" before answering, drastically improving accuracy
+        thinkingConfig: { thinkingBudget: 16384 },
+        maxOutputTokens: 20000, 
       },
     });
 
+    // The text property contains the JSON response
     const result = JSON.parse(response.text);
-    res.json(result);
+    
+    // Ensure the response matches the required hackathon format
+    res.json({
+      status: "success",
+      language: language,
+      classification: result.classification,
+      confidenceScore: result.confidenceScore,
+      explanation: result.explanation
+    });
   } catch (error) {
-    console.error('Analysis Error:', error);
+    console.error('Forensic Analysis Error:', error);
     res.status(500).json({
       status: "error",
-      message: "Analysis failed. The audio sample may be corrupted or unsupported."
+      message: "Deep Analysis failed. The audio sample might be too short or corrupted."
     });
   }
 });
 
-// Fallback for Single Page Application routing
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(port, () => {
-  console.log(`VoxGuard Forensic Server running on port ${port}`);
+  console.log(`VoxGuard High-Precision API running on port ${port}`);
 });

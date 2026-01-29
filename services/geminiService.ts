@@ -2,34 +2,36 @@
 import { AnalysisResult, Language } from "../types";
 
 /**
- * Calls the local backend endpoint which then communicates with Gemini.
- * This protects your API key and provides the structure needed for the hackathon.
+ * Calls the hackathon-compliant backend endpoint.
+ * Includes mandatory x-api-key header.
  */
 export const analyzeVoiceSample = async (
   audioBase64: string,
-  mimeType: string,
-  language: Language
+  audioFormat: string,
+  language: Language,
+  hackathonApiKey: string
 ): Promise<AnalysisResult> => {
   try {
     const response = await fetch('/api/voice-detection', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-api-key': hackathonApiKey,
       },
       body: JSON.stringify({
-        audioBase64,
-        mimeType,
-        language
+        language,
+        audioFormat: 'mp3', // Hackathon requirement specifies MP3
+        audioBase64
       }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Server error');
+      throw new Error(data.message || 'Server authentication failed');
     }
 
-    const result = await response.json();
-    return result as AnalysisResult;
+    return data as AnalysisResult;
   } catch (error: any) {
     console.error("API Call Failed:", error);
     return {
