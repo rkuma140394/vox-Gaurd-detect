@@ -2,7 +2,7 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,12 +15,13 @@ app.use(express.static(__dirname));
 
 /**
  * HACKATHON ENDPOINT: POST /api/voice-detection
- * Optimized for High Precision Analysis using Gemini 3 Pro + Thinking Budget.
+ * Optimized for Ultra-High Precision Analysis using Gemini 3 Pro + Thinking Budget.
  */
 app.post('/api/voice-detection', async (req, res) => {
   const apiKeyHeader = req.headers['x-api-key'];
   const { audioBase64, audioFormat, language } = req.body;
 
+  // Validation against hackathon key (fallback to default if env not set)
   const VALID_KEY = process.env.HACKATHON_API_KEY || 'sk_voxguard_2025';
   
   if (!apiKeyHeader || apiKeyHeader !== VALID_KEY) {
@@ -33,60 +34,86 @@ app.post('/api/voice-detection', async (req, res) => {
   if (!process.env.API_KEY) {
     return res.status(500).json({
       status: "error",
-      message: "Internal Server Error: AI model credentials not configured."
+      message: "Internal Server Error: Gemini API key not configured on server."
+    });
+  }
+
+  if (!audioBase64) {
+    return res.status(400).json({
+      status: "error",
+      message: "Bad Request: audioBase64 is required."
     });
   }
 
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
-    // Using gemini-3-pro-preview for highest reasoning accuracy
+    // Gemini 3 Pro for superior forensic reasoning
     const model = 'gemini-3-pro-preview';
 
-    const systemInstruction = `You are an elite Audio Forensic Expert specializing in Neural Speech Analysis and Deepfake Detection. 
-    Your task is to analyze audio samples in ${language} and identify if they are HUMAN_GENERATED or AI_GENERATED.
+    const systemInstruction = `You are a World-Class Audio Forensic Analyst specializing in Deepfake detection.
+    Analyze the provided audio sample in ${language}.
     
-    CRITERIA FOR ANALYSIS:
-    1. PROSODY: Check for unnatural rhythmic precision or lack of emotional micro-variance common in ${language}.
-    2. SPECTRAL TRACES: Identify metallic resonance or quantization artifacts in the high-frequency range.
-    3. BREATHING: Human speech has involuntary respiratory patterns. AI often mimics this poorly or omits it.
-    4. LINGUISTIC COHERENCE: Evaluate if the phonetic transitions are too "perfect" for natural human speech in ${language}.
+    FORENSIC STEPS:
+    1. Spectral Analysis: Look for 'metallic' smoothing, unnatural frequency cuts, or phase inconsistencies.
+    2. Prosodic Verification: Humans have micro-hesitations, irregular breathing, and varied emotional pitch. AI voices are often 'too perfect' or have consistent rhythmic micro-jitter.
+    3. Linguistic Authenticity: Check if phoneme transitions (especially in ${language}) sound synthesized.
     
-    Be extremely critical. If the confidence is high, explain precisely what artifacts led to the conclusion.`;
+    You must decide if it is HUMAN_GENERATED or AI_GENERATED.
+    Be extremely critical. Your reputation depends on avoiding false negatives.`;
 
     const response = await ai.models.generateContent({
       model: model,
       contents: {
         parts: [
           { inlineData: { mimeType: 'audio/mp3', data: audioBase64 } },
-          { text: `Perform a deep forensic analysis of this ${language} audio sample. Format the response as a JSON object.` },
+          { text: `Analyze this audio sample in ${language}. Provide a detailed forensic verdict.` },
         ],
       },
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
-        // Thinking budget allows the model to "reason" before answering, drastically improving accuracy
-        thinkingConfig: { thinkingBudget: 16384 },
-        maxOutputTokens: 20000, 
+        // Thinking budget enables the model to reason through complex acoustic features before answering.
+        thinkingConfig: { thinkingBudget: 24000 },
+        maxOutputTokens: 30000,
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            classification: { 
+              type: Type.STRING, 
+              enum: ["AI_GENERATED", "HUMAN_GENERATED"],
+              description: "The classification of the voice sample."
+            },
+            confidenceScore: { 
+              type: Type.NUMBER,
+              description: "Confidence level between 0 and 1."
+            },
+            explanation: { 
+              type: Type.STRING,
+              description: "Detailed technical explanation of the artifacts detected."
+            }
+          },
+          required: ["classification", "confidenceScore", "explanation"]
+        }
       },
     });
 
-    // The text property contains the JSON response
-    const result = JSON.parse(response.text);
+    const forensicResult = JSON.parse(response.text);
     
-    // Ensure the response matches the required hackathon format
+    // Return standard hackathon response format
     res.json({
       status: "success",
       language: language,
-      classification: result.classification,
-      confidenceScore: result.confidenceScore,
-      explanation: result.explanation
+      classification: forensicResult.classification,
+      confidenceScore: forensicResult.confidenceScore,
+      explanation: forensicResult.explanation
     });
+
   } catch (error) {
-    console.error('Forensic Analysis Error:', error);
+    console.error('Forensic Engine Error:', error);
     res.status(500).json({
       status: "error",
-      message: "Deep Analysis failed. The audio sample might be too short or corrupted."
+      message: "Forensic analysis engine encountered an error. Ensure the audio is a valid Base64 MP3."
     });
   }
 });
@@ -96,5 +123,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`VoxGuard High-Precision API running on port ${port}`);
+  console.log(`VoxGuard High-Accuracy API active on port ${port}`);
 });

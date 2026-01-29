@@ -1,26 +1,44 @@
 
-# VoxGuard: Voice Authenticity Analyzer
+# VoxGuard: High-Accuracy Voice Authenticity API
 
-VoxGuard is a forensic audio analysis tool designed to detect AI-generated speech (deepfakes) across five languages: Tamil, English, Hindi, Malayalam, and Telugu.
+VoxGuard is a forensic deepfake detection system compliant with the 2025 AI Hackathon requirements. It leverages **Gemini 3 Pro** with specialized **Thinking Budgets** to detect AI artifacts in Tamil, English, Hindi, Malayalam, and Telugu.
 
-## Features
-- **Multimodal AI Analysis**: Uses Gemini 3 Flash to detect spectral and prosodic anomalies.
-- **Multi-language Support**: Specialized detection for major regional languages.
-- **Hackathon Ready**: Includes a structured API endpoint at `/api/voice-detection`.
+## Hackathon API Documentation
 
-## Deployment to Render.com
-1. Connect this GitHub repository to a new **Web Service** on Render.
-2. Set the **Build Command** to: `npm install && npm run build`
-3. Set the **Start Command** to: `npm start`
-4. Add an **Environment Variable** named `API_KEY` containing your Google Gemini API Key.
+### Endpoint
+`POST /api/voice-detection`
 
-## API Specification
-**Endpoint:** `POST /api/voice-detection`  
-**Body:**
+### Headers
+| Header | Value |
+| :--- | :--- |
+| `Content-Type` | `application/json` |
+| `x-api-key` | `sk_voxguard_2025` (Default) or your configured secret key |
+
+### Request Body
 ```json
 {
-  "audioBase64": "...",
-  "mimeType": "audio/mp3",
-  "language": "Tamil"
+  "language": "Tamil",
+  "audioFormat": "mp3",
+  "audioBase64": "SUQzBAAA..."
 }
 ```
+
+### Response Body
+```json
+{
+  "status": "success",
+  "language": "Tamil",
+  "classification": "AI_GENERATED",
+  "confidenceScore": 0.95,
+  "explanation": "Detected unnatural spectral smoothing in high frequencies and robotic prosody patterns."
+}
+```
+
+## Local Setup
+1. `npm install`
+2. `export API_KEY=your_gemini_api_key`
+3. `npm run build`
+4. `npm start`
+
+## Deployment
+This app is ready for instant deployment to Render, Vercel, or Railway. Ensure the `API_KEY` environment variable is set in your dashboard.
