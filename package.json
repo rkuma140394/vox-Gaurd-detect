@@ -1,0 +1,20 @@
+
+{
+  "name": "voxguard-api",
+  "version": "1.1.0",
+  "description": "Backend for VoxGuard Voice Authenticity Analyzer",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "npx esbuild index.tsx --bundle --outfile=bundle.js --format=esm --loader:.tsx=tsx --loader:.ts=ts --external:react --external:react-dom --external:recharts --external:@google/genai"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "@google/genai": "^1.38.0",
+    "esbuild": "^0.20.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

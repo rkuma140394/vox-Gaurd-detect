@@ -1,0 +1,7 @@
+{
+  "name": "VoxGuard: Voice Authenticity Analyzer",
+  "description": "A sophisticated voice forensic tool that detects AI-generated speech (deepfakes) across multiple languages using advanced multimodal AI analysis.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
