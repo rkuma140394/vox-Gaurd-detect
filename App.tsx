@@ -1,9 +1,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import Header from './components/Header';
-import { Language, AnalysisResult, AudioFile } from './types';
-import { analyzeVoiceSample } from './services/geminiService';
-import AnalysisResultView from './components/AnalysisResultView';
+import Header from './components/Header.tsx';
+import { Language, AnalysisResult, AudioFile } from './types.ts';
+import { analyzeVoiceSample } from './services/geminiService.ts';
+import AnalysisResultView from './components/AnalysisResultView.tsx';
 
 const App: React.FC = () => {
   const [selectedLanguage, setSelectedLanguage] = useState<Language>(Language.ENGLISH);
