@@ -48,15 +48,10 @@ app.post('/api/voice-detection', async (req, res) => {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
-    /** 
-     * Switching to gemini-3-flash-preview for significantly faster processing.
-     * Flash is optimized for lower latency while still supporting 'thinking'
-     * for high-accuracy forensic classification.
-     */
     const model = 'gemini-3-flash-preview';
 
     const systemInstruction = `You are a World-Class Audio Forensic Analyst. 
-    Analyze the provided audio sample in ${language} to detect if it is HUMAN_GENERATED or AI_GENERATED.
+    Analyze the provided audio sample in ${language} to detect if it is HUMAN or AI_GENERATED.
     
     FORENSIC CRITERIA:
     - Spectral Smoothing: AI often smooths high frequencies or lacks natural "air" noise.
@@ -64,7 +59,7 @@ app.post('/api/voice-detection', async (req, res) => {
     - Emotional Nuance: Look for natural variations in volume and pitch that AI lacks in ${language}.
     - Artifacts: Identify 'metallic' or 'electronic' background artifacts.
     
-    Be critical. Return high confidence only if artifacts are clear.`;
+    Return the classification as either "HUMAN" or "AI_GENERATED".`;
 
     const response = await ai.models.generateContent({
       model: model,
@@ -77,18 +72,14 @@ app.post('/api/voice-detection', async (req, res) => {
       config: {
         systemInstruction: systemInstruction,
         responseMimeType: "application/json",
-        /**
-         * Reduced Thinking Budget (8000 tokens):
-         * High enough for robust reasoning, low enough to reduce response time from ~25s to ~8s.
-         */
         thinkingConfig: { thinkingBudget: 8000 },
-        maxOutputTokens: 1000, // Minimal tokens needed for JSON output
+        maxOutputTokens: 1000,
         responseSchema: {
           type: Type.OBJECT,
           properties: {
             classification: { 
               type: Type.STRING, 
-              enum: ["AI_GENERATED", "HUMAN_GENERATED"]
+              enum: ["AI_GENERATED", "HUMAN"]
             },
             confidenceScore: { 
               type: Type.NUMBER

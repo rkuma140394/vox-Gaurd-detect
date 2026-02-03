@@ -37,7 +37,7 @@ export const analyzeVoiceSample = async (
     return {
       status: 'error',
       language: language,
-      classification: 'HUMAN_GENERATED',
+      classification: 'HUMAN',
       confidenceScore: 0,
       explanation: error.message || 'Connection to analysis endpoint failed.'
     } as any;

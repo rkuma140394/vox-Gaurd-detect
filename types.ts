@@ -7,7 +7,7 @@ export enum Language {
   TELUGU = 'Telugu'
 }
 
-export type Classification = 'AI_GENERATED' | 'HUMAN_GENERATED';
+export type Classification = 'AI_GENERATED' | 'HUMAN';
 
 export interface AnalysisResult {
   status: 'success' | 'error';
